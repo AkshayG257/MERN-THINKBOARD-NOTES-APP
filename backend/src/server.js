@@ -4,15 +4,21 @@ import cors from "cors"
 import notesRoutes from "./routes/notesRoutes.js";
 import { connectDB } from "./config/db.js";
 import rateLimiter from "./middlewares/rateLimiter.js";
+import path from "path";
+
+
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5001;
+const __dirname =path.resolve();
 app.use(express.json());
-app.use(cors({
-    origin: "http://localhost:5173"
-}))
 
+if(process.env.NODE_END !== "production"){
+    app.use(cors({
+        origin: "http://localhost:5173"
+    }))
+}
 app.use((req,res,next) => {
     console.log(`Request of type ${req.method} is comming for ${req.url} `)
     next();
@@ -21,6 +27,13 @@ app.use((req,res,next) => {
 app.use(rateLimiter)
 
 app.use("/api/notes", notesRoutes);
+if(process.env.NODE_ENV === "production"){
+    app.use(express.static(path.join(__dirname, "../frontend/dist")));
+    app.get("*", (req,res)=>{
+        res.sendFile(path.join(__dirname, "../frontend/", "dist", "index.html"))
+})
+}
+
 
 connectDB().then(() =>{
     app.listen(5001, () =>  {
